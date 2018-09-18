@@ -1,9 +1,5 @@
 package com.dieam.reactnativepushnotification.modules;
 
-import java.util.Map;
-import com.google.firebase.messaging.FirebaseMessagingService;
-import com.google.firebase.messaging.RemoteMessage;
-
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.Application;
@@ -17,6 +13,7 @@ import com.facebook.react.ReactApplication;
 import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
+import com.google.android.gms.gcm.GcmListenerService;
 
 import org.json.JSONObject;
 
@@ -25,25 +22,14 @@ import java.util.Random;
 
 import static com.dieam.reactnativepushnotification.modules.RNPushNotification.LOG_TAG;
 
-public class RNPushNotificationListenerService extends FirebaseMessagingService {
+public class RNPushNotificationListenerService extends GcmListenerService {
 
     @Override
-    public void onMessageReceived(RemoteMessage message) {
-        String from = message.getFrom();
-
-        final Bundle bundle = new Bundle();
-        for(Map.Entry<String, String> entry : message.getData().entrySet()) {
-            bundle.putString(entry.getKey(), entry.getValue());
-        }
+    public void onMessageReceived(String from, final Bundle bundle) {
         JSONObject data = getPushData(bundle.getString("data"));
-        // Copy `twi_body` to `message` to support Twilio
-        if (bundle.containsKey("twi_body")) {
-            bundle.putString("message", bundle.getString("twi_body"));
-        }
-
         if (data != null) {
             if (!bundle.containsKey("message")) {
-                bundle.putString("message", data.optString("alert", null));
+                bundle.putString("message", data.optString("alert", "Notification received"));
             }
             if (!bundle.containsKey("title")) {
                 bundle.putString("title", data.optString("title", null));
@@ -54,13 +40,13 @@ public class RNPushNotificationListenerService extends FirebaseMessagingService 
             if (!bundle.containsKey("color")) {
                 bundle.putString("color", data.optString("color", null));
             }
-
-            final int badge = data.optInt("badge", -1);
+        }
+        if(bundle.getString("badge") != null) {
+            final int badge = Integer.parseInt(bundle.getString("badge"));
             if (badge >= 0) {
                 ApplicationBadgeHelper.INSTANCE.setApplicationIconBadgeNumber(this, badge);
             }
         }
-
         Log.v(LOG_TAG, "onMessageReceived: " + bundle);
 
         // We need to run this on the main thread, as the React code assumes that is true.
@@ -120,10 +106,11 @@ public class RNPushNotificationListenerService extends FirebaseMessagingService 
         }
 
         Log.v(LOG_TAG, "sendNotification: " + bundle);
+        Log.e(LOG_TAG, "안봉현3");
+         Application applicationContext = (Application) context.getApplicationContext();
+         RNPushNotificationHelper pushNotificationHelper = new RNPushNotificationHelper(applicationContext);
+         pushNotificationHelper.sendToNotificationCentre(bundle);
 
-        Application applicationContext = (Application) context.getApplicationContext();
-        RNPushNotificationHelper pushNotificationHelper = new RNPushNotificationHelper(applicationContext);
-        pushNotificationHelper.sendToNotificationCentre(bundle);
     }
 
     private boolean isApplicationInForeground() {

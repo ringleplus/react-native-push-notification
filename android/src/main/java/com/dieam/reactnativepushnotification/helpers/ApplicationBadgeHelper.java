@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.util.Log;
 
 import com.facebook.common.logging.FLog;
 
@@ -36,6 +37,7 @@ public class ApplicationBadgeHelper {
     }
 
     public void setApplicationIconBadgeNumber(Context context, int number) {
+        Log.v(LOG_TAG, ""+number);
         if (null == componentName) {
             componentName = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName()).getComponent();
         }
@@ -47,18 +49,22 @@ public class ApplicationBadgeHelper {
         if (null == applyAutomaticBadger) {
             applyAutomaticBadger = ShortcutBadger.applyCount(context, number);
             if (applyAutomaticBadger) {
+                Log.v(LOG_TAG, "First attempt to use automatic badger succeeded; permanently enabling method.");
                 FLog.i(LOG_TAG, "First attempt to use automatic badger succeeded; permanently enabling method.");
             } else {
+                Log.v(LOG_TAG, "First attempt to use automatic badger failed; permanently disabling method");
                 FLog.i(LOG_TAG, "First attempt to use automatic badger failed; permanently disabling method.");
             }
             return;
         } else if (!applyAutomaticBadger) {
+            Log.v(LOG_TAG, ""+1);
             return;
         }
         ShortcutBadger.applyCount(context, number);
     }
 
     private void tryLegacySamsungBadge(Context context, int number) {
+        Log.v(LOG_TAG, ""+2);
         // First attempt to apply legacy samsung badge. Check if eligible, then attempt it.
         if (null == applySamsungBadger) {
             applySamsungBadger = isLegacySamsungLauncher(context) && applyLegacySamsungBadge(context, number);
